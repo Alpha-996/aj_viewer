@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Al Jazeera Live Blog Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --aj-orange:      #fa9000;
+      --aj-orange-dark: #d97700;
+      --aj-orange-deep: #b86200;
+      --aj-orange-pale: #fff4e0;
+      --aj-black:       #0a0a0a;
+      --aj-ink:         #1c1c1c;
+      --aj-mid:         #444;
+      --aj-muted:       #767676;
+      --aj-rule:        #e0e0e0;
+      --aj-bg:          #faf8f4;
+      --aj-white:       #ffffff;
+      --aj-breaking:    #fa9000;
+      --aj-developing:  #e05c00;
+      --aj-analysis:    #1a5fa8;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Source Serif 4', Georgia, serif;
+      background: var(--aj-bg);
+      color: var(--aj-ink);
+      min-height: 100vh;
+    }
+
+    /* ── MASTHEAD ── */
+    .masthead {
+      background: var(--aj-black);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.45);
+    }
+    .masthead-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+    }
+    .masthead-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      background: var(--aj-orange);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: var(--aj-white);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-weight: 900; font-size: 18px;
+      color: var(--aj-orange-dark);
+      flex-shrink: 0;
+    }
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700; font-size: 20px;
+      color: var(--aj-white);
+      letter-spacing: 0.02em; line-height: 1.2;
+    }
+    .logo-text span {
+      display: block;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 400; font-size: 10px;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      opacity: 0.85; margin-top: 2px;
+    }
+    .masthead-live {
+      display: flex; align-items: center; gap: 8px; padding: 0 24px;
+    }
+    .live-dot {
+      width: 8px; height: 8px;
+      background: var(--aj-orange); border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.35; transform:scale(0.65); }
+    }
+    .live-label {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--aj-white);
+    }
+    .masthead-stats { display:flex; align-items:center; padding:0 24px; }
+    #post-count {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px; color: rgba(255,255,255,0.5);
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header { background: var(--aj-white); border-bottom: 3px solid var(--aj-orange); }
+    .page-header-inner { max-width:1180px; margin:0 auto; padding:32px 24px 28px; }
+    .eyebrow {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--aj-orange); margin-bottom: 10px;
+    }
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(28px,4vw,46px); font-weight: 900;
+      line-height: 1.1; color: var(--aj-black); max-width: 760px;
+    }
+    .page-meta { margin-top:16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .page-meta-item {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px; color: var(--aj-muted);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .page-meta-item svg { flex-shrink:0; }
+
+    /* ── CONTROLS BAR ── */
+    .controls-bar { background:var(--aj-white); border-bottom:1px solid var(--aj-rule); }
+    .controls-inner {
+      max-width:1180px; margin:0 auto; padding:12px 24px;
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    }
+    .filter-label {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size:12px; font-weight:600; text-transform:uppercase;
+      letter-spacing:0.1em; color:var(--aj-muted); margin-right:4px;
+    }
+    .filter-btn {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size:12px; font-weight:500; padding:5px 14px;
+      border-radius:2px; border:1px solid var(--aj-rule);
+      background:var(--aj-white); color:var(--aj-mid);
+      cursor:pointer; transition:all 0.15s; letter-spacing:0.04em;
+    }
+    .filter-btn:hover { border-color:var(--aj-orange); color:var(--aj-orange); }
+    .filter-btn.active { background:var(--aj-orange); border-color:var(--aj-orange); color:var(--aj-white); }
+    .search-wrap { margin-left:auto; position:relative; }
+    .search-input {
+      font-family: 'IBM Plex Sans', sans-serif; font-size:13px;
+      padding:6px 12px 6px 34px; border:1px solid var(--aj-rule);
+      border-radius:2px; background:var(--aj-bg); color:var(--aj-ink);
+      width:220px; outline:none; transition:border-color 0.15s;
+    }
+    .search-input:focus { border-color:var(--aj-orange); }
+    .search-icon {
+      position:absolute; left:10px; top:50%; transform:translateY(-50%);
+      color:var(--aj-muted); pointer-events:none;
+    }
+
+    /* ── LAYOUT ── */
+    .main {
+      max-width:1180px; margin:0 auto; padding:32px 24px 64px;
+      display:grid; grid-template-columns:1fr 300px;
+      gap:40px; align-items:start;
+    }
+
+    /* ── DATE GROUPS ── */
+    .date-group { margin-bottom:8px; }
+    .date-banner {
+      display:flex; align-items:center; gap:16px; margin-bottom:20px;
+      position:sticky; top:67px; z-index:10;
+      background:var(--aj-bg); padding:8px 0;
+    }
+    .date-banner::after {
+      content:''; flex:1; height:2px;
+      background:linear-gradient(to right,var(--aj-rule),transparent);
+    }
+    .date-badge {
+      font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:600;
+      letter-spacing:0.14em; text-transform:uppercase;
+      background:var(--aj-black); color:var(--aj-white); padding:5px 12px; white-space:nowrap;
+    }
+    .date-count { font-family:'IBM Plex Sans',sans-serif; font-size:11px; color:var(--aj-muted); }
+
+    /* ── TIMELINE ── */
+    .timeline { position:relative; padding-left:28px; }
+    .timeline::before {
+      content:''; position:absolute; left:7px; top:0; bottom:0; width:2px;
+      background:linear-gradient(to bottom,var(--aj-orange) 0%,var(--aj-rule) 100%);
+    }
+    .post-item { position:relative; animation:fadeUp 0.4s ease both; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .post-item::before {
+      content:''; position:absolute; left:-25px; top:18px;
+      width:10px; height:10px; border-radius:50%;
+      background:var(--aj-white); border:2px solid var(--aj-rule); z-index:1;
+      transition:border-color 0.2s;
+    }
+    .post-item:hover::before { border-color:var(--aj-orange); }
+    .post-item.breaking::before  { border-color:var(--aj-orange); background:var(--aj-orange); }
+    .post-item.developing::before { border-color:var(--aj-developing); background:var(--aj-developing); }
+
+    /* ── POST CARD ── */
+    .post-card {
+      background:var(--aj-white); border:1px solid var(--aj-rule);
+      border-left:3px solid transparent;
+      padding:20px 22px 18px; margin-bottom:16px;
+      transition:box-shadow 0.2s,border-left-color 0.2s;
+    }
+    .post-card:hover { box-shadow:0 4px 20px rgba(250,144,0,0.1); border-left-color:var(--aj-orange); }
+    .post-card.breaking   { border-left-color:var(--aj-orange); }
+    .post-card.developing { border-left-color:var(--aj-developing); }
+    .post-card.analysis   { border-left-color:var(--aj-analysis); }
+
+    .post-top {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:10px; flex-wrap:wrap;
+    }
+    .post-label {
+      font-family:'IBM Plex Sans',sans-serif; font-size:10px; font-weight:700;
+      letter-spacing:0.14em; text-transform:uppercase; padding:3px 8px; border-radius:2px;
+    }
+    .post-label.breaking   { background:var(--aj-orange);     color:var(--aj-white); }
+    .post-label.developing { background:var(--aj-developing);  color:var(--aj-white); }
+    .post-label.analysis   { background:var(--aj-analysis);    color:var(--aj-white); }
+    .post-label.default    { background:#efefef;               color:var(--aj-mid); }
+
+    /* ── DUAL TIMEZONE ── */
+    .post-time { display:flex; align-items:center; gap:8px; margin-left:auto; }
+    .tz-block {
+      display:flex; align-items:center; gap:4px;
+      font-family:'IBM Plex Sans',sans-serif; font-size:12px; color:var(--aj-muted);
+    }
+    .tz-tag {
+      font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+      padding:1px 5px; border-radius:2px; background:#f0f0f0; color:var(--aj-mid);
+    }
+    .tz-tag.ist { background:var(--aj-orange-pale); color:var(--aj-orange-deep); }
+    .tz-sep { color:var(--aj-rule); font-size:14px; line-height:1; }
+
+    .post-title {
+      font-family:'Playfair Display',serif; font-size:19px; font-weight:700;
+      line-height:1.3; color:var(--aj-black); margin-bottom:10px;
+    }
+    .post-content {
+      font-size:15px; line-height:1.72; color:var(--aj-mid);
+      max-height:130px; overflow:hidden; position:relative;
+      transition:max-height 0.4s ease;
+    }
+    .post-content.expanded { max-height:2000px; }
+    .post-content::after {
+      content:''; position:absolute; bottom:0; left:0; right:0; height:50px;
+      background:linear-gradient(transparent,var(--aj-white));
+      pointer-events:none; transition:opacity 0.3s;
+    }
+    .post-content.expanded::after { opacity:0; }
+
+    .post-footer {
+      margin-top:14px; display:flex; align-items:center;
+      justify-content:space-between; gap:12px;
+    }
+    .post-author { font-family:'IBM Plex Sans',sans-serif; font-size:12px; color:var(--aj-muted); }
+    .post-author strong { color:var(--aj-orange-dark); font-weight:600; }
+    .read-more-btn {
+      font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:600;
+      color:var(--aj-orange); background:none; border:1px solid var(--aj-orange);
+      padding:4px 12px; cursor:pointer; letter-spacing:0.05em;
+      transition:all 0.15s; border-radius:1px; white-space:nowrap;
+    }
+    .read-more-btn:hover { background:var(--aj-orange); color:var(--aj-white); }
+
+    /* ── SIDEBAR ── */
+    .sidebar { display:flex; flex-direction:column; gap:24px; }
+    .sidebar-card { background:var(--aj-white); border:1px solid var(--aj-rule); }
+    .sidebar-card-head {
+      padding:12px 16px; border-bottom:2px solid var(--aj-orange);
+      display:flex; align-items:center; gap:8px;
+    }
+    .sidebar-card-title {
+      font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:700;
+      letter-spacing:0.14em; text-transform:uppercase; color:var(--aj-black);
+    }
+    .sidebar-card-body { padding:16px; }
+
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .stat-box { text-align:center; padding:14px 8px; background:var(--aj-bg); border:1px solid var(--aj-rule); }
+    .stat-num { font-family:'Playfair Display',serif; font-size:28px; font-weight:900; color:var(--aj-orange); line-height:1; }
+    .stat-lbl { font-family:'IBM Plex Sans',sans-serif; font-size:11px; color:var(--aj-muted); margin-top:4px; letter-spacing:0.08em; text-transform:uppercase; }
+
+    /* TZ legend */
+    .tz-legend { display:flex; flex-direction:column; gap:12px; }
+    .tz-legend-row { display:flex; align-items:flex-start; gap:10px; }
+    .tz-legend-tag {
+      font-family:'IBM Plex Sans',sans-serif; font-size:10px; font-weight:700;
+      letter-spacing:0.1em; padding:3px 8px; border-radius:2px; flex-shrink:0; margin-top:1px;
+    }
+    .tz-legend-tag.gmt { background:#f0f0f0; color:var(--aj-mid); }
+    .tz-legend-tag.ist { background:var(--aj-orange-pale); color:var(--aj-orange-deep); }
+    .tz-legend-info { font-family:'IBM Plex Sans',sans-serif; font-size:12px; color:var(--aj-muted); line-height:1.5; }
+    .tz-legend-info strong { color:var(--aj-ink); font-weight:600; display:block; }
+
+    .label-list { list-style:none; display:flex; flex-direction:column; }
+    .label-list li {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:9px 0; border-bottom:1px solid var(--aj-rule);
+      cursor:pointer; transition:padding 0.1s;
+    }
+    .label-list li:last-child { border-bottom:none; }
+    .label-list li:hover { padding-left:6px; }
+    .label-name { font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:var(--aj-ink); }
+    .label-cnt {
+      font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:600;
+      color:var(--aj-white); background:#aaa; padding:2px 7px; border-radius:20px;
+    }
+    .label-cnt.hi { background:var(--aj-orange); }
+
+    .date-nav { display:flex; flex-direction:column; gap:6px; }
+    .date-nav-btn {
+      font-family:'IBM Plex Sans',sans-serif; font-size:13px;
+      padding:8px 12px; background:var(--aj-bg); border:1px solid var(--aj-rule);
+      color:var(--aj-ink); cursor:pointer; text-align:left;
+      transition:all 0.15s; border-radius:1px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .date-nav-btn:hover,.date-nav-btn.active { background:var(--aj-orange); color:var(--aj-white); border-color:var(--aj-orange); }
+    .date-nav-cnt { font-size:11px; opacity:0.75; }
+
+    /* ── LOADING ── */
+    .loading-bar {
+      position:fixed; top:0; left:0; right:0; height:3px;
+      background:linear-gradient(90deg,var(--aj-orange-deep),var(--aj-orange),#ffc040);
+      transform-origin:left; animation:loadBar 1.2s ease-in-out infinite; z-index:999;
+    }
+    @keyframes loadBar {
+      0%  { transform:scaleX(0); opacity:1; }
+      80% { transform:scaleX(1); opacity:1; }
+      100%{ transform:scaleX(1); opacity:0; }
+    }
+
+    .state-msg { padding:60px 24px; text-align:center; color:var(--aj-muted); }
+    .state-msg h3 { font-family:'Playfair Display',serif; font-size:22px; color:var(--aj-ink); margin-bottom:8px; }
+
+    .footer { background:var(--aj-black); padding:24px; text-align:center; }
+    .footer p { font-family:'IBM Plex Sans',sans-serif; font-size:12px; color:rgba(255,255,255,0.32); letter-spacing:0.06em; }
+    .footer strong { color:var(--aj-orange); }
+
+    @media (max-width:860px) {
+      .main { grid-template-columns:1fr; }
+      .sidebar { display:grid; grid-template-columns:1fr 1fr; }
+      .sidebar-card:last-child { grid-column:1/-1; }
+    }
+    @media (max-width:560px) {
+      .main { padding:20px 16px 40px; }
+      .sidebar { grid-template-columns:1fr; }
+      .search-input { width:150px; }
+      .masthead-stats { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="loading-bar" id="loading-bar" style="display:none"></div>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="masthead-logo" href="#">
+      <div class="logo-icon">AJ</div>
+      <div class="logo-text">Al Jazeera <span>Live Blog Archive</span></div>
+    </a>
+    <div class="masthead-live">
+      <div class="live-dot"></div>
+      <span class="live-label">Live Updates</span>
+    </div>
+    <div class="masthead-stats">
+      <span id="post-count">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="eyebrow">Live Blog Archive</div>
+    <h1 class="page-title">Breaking News &amp; Developing Stories</h1>
+    <div class="page-meta">
+      <span class="page-meta-item">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Feb 28 – Mar 4, 2026
+      </span>
+      <span class="page-meta-item">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="header-count">—</span> total entries
+      </span>
+      <span class="page-meta-item">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        aj_posts.json
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="controls-bar">
+  <div class="controls-inner">
+    <span class="filter-label">Filter:</span>
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="breaking">Breaking</button>
+    <button class="filter-btn" data-filter="developing">Developing</button>
+    <button class="filter-btn" data-filter="analysis">Analysis</button>
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" type="text" id="search-input" placeholder="Search posts…" />
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <section><div id="feed"></div></section>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fa9000" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="sidebar-card-title">Overview</span>
+      </div>
+      <div class="sidebar-card-body">
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-num" id="stat-total">–</div><div class="stat-lbl">Posts</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-days">–</div><div class="stat-lbl">Days</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-breaking">–</div><div class="stat-lbl">Breaking</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-developing">–</div><div class="stat-lbl">Developing</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fa9000" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="sidebar-card-title">Time Zones</span>
+      </div>
+      <div class="sidebar-card-body">
+        <div class="tz-legend">
+          <div class="tz-legend-row">
+            <span class="tz-legend-tag gmt">GMT</span>
+            <div class="tz-legend-info"><strong>Greenwich Mean Time</strong>UTC+0 · As published in JSON</div>
+          </div>
+          <div class="tz-legend-row">
+            <span class="tz-legend-tag ist">IST</span>
+            <div class="tz-legend-info"><strong>India Standard Time</strong>UTC+5:30 · GMT + 5 hrs 30 min</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fa9000" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="sidebar-card-title">Jump to Date</span>
+      </div>
+      <div class="sidebar-card-body">
+        <div class="date-nav" id="date-nav"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fa9000" stroke-width="2.5"><path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+        <span class="sidebar-card-title">Post Labels</span>
+      </div>
+      <div class="sidebar-card-body" style="padding:0 16px">
+        <ul class="label-list" id="label-list"></ul>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<footer class="footer">
+  <p>Al Jazeera Live Blog Archive Viewer &nbsp;·&nbsp; <strong>Not an official Al Jazeera product</strong> &nbsp;·&nbsp; Data sourced from aj_posts.json</p>
+</footer>
+
+<script>
+const FILE = 'aj_posts.json';
+
+const FRIENDLY_DATES = {
+  '28-02-2026': 'Friday, 28 Feb 2026',
+  '02-03-2026': 'Monday, 2 Mar 2026',
+  '03-03-2026': 'Tuesday, 3 Mar 2026',
+  '04-03-2026': 'Wednesday, 4 Mar 2026',
+};
+
+let allPosts = [];
+let activeFilter = 'all';
+
+function labelClass(label = '') {
+  const l = label.toLowerCase();
+  if (l.includes('breaking'))   return 'breaking';
+  if (l.includes('developing')) return 'developing';
+  if (l.includes('analysis'))   return 'analysis';
+  return 'default';
+}
+
+// date field is GMT (no Z suffix). Returns { gmt, ist }
+function formatTimes(iso) {
+  if (!iso) return { gmt: '', ist: '' };
+  try {
+    const utcStr = iso.endsWith('Z') ? iso : iso + 'Z';
+    const d = new Date(utcStr);
+    if (isNaN(d)) return { gmt: '', ist: '' };
+    const gmt = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+    const ist = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata', hour12: false });
+    return { gmt, ist };
+  } catch { return { gmt: '', ist: '' }; }
+}
+
+function escHtml(s = '') {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function parseDate(d) {
+  const [dd, mm, yy] = d.split('-');
+  return new Date(`${yy}-${mm}-${dd}`);
+}
+
+async function loadAll() {
+  document.getElementById('loading-bar').style.display = 'block';
+  try {
+    const resp = await fetch(FILE);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!Array.isArray(data)) throw new Error('JSON root must be an array');
+    allPosts = data;
+  } catch (e) {
+    document.getElementById('loading-bar').style.display = 'none';
+    document.getElementById('feed').innerHTML =
+      `<div class="state-msg">
+        <h3>Could not load ${FILE}</h3>
+        <p>Place <strong>aj_posts.json</strong> in the same folder and serve via a local web server.</p>
+        <p style="margin-top:8px;font-size:12px;color:#bbb">Error: ${e.message}</p>
+      </div>`;
+    return;
+  }
+  document.getElementById('loading-bar').style.display = 'none';
+
+  // Sort: newest post at top (by ISO date field, treated as UTC)
+  allPosts.sort((a, b) => {
+    const ts = iso => new Date((iso || '').endsWith('Z') ? iso : iso + 'Z').getTime();
+    return ts(b.date) - ts(a.date);
+  });
+
+  buildSidebar();
+  renderFeed(allPosts);
+}
+
+function buildSidebar() {
+  const total      = allPosts.length;
+  const breaking   = allPosts.filter(p => labelClass(p.post_label_name) === 'breaking').length;
+  const developing = allPosts.filter(p => labelClass(p.post_label_name) === 'developing').length;
+  const uniqueDays = new Set(allPosts.map(p => p.blog_date)).size;
+
+  document.getElementById('stat-total').textContent      = total;
+  document.getElementById('stat-days').textContent       = uniqueDays;
+  document.getElementById('stat-breaking').textContent   = breaking;
+  document.getElementById('stat-developing').textContent = developing;
+  document.getElementById('header-count').textContent    = total;
+  document.getElementById('post-count').textContent      = `${total} posts`;
+
+  // Date nav — newest first
+  const dates = [...new Set(allPosts.map(p => p.blog_date))].sort((a,b) => parseDate(b) - parseDate(a));
+  const dateCounts = {};
+  allPosts.forEach(p => { dateCounts[p.blog_date] = (dateCounts[p.blog_date] || 0) + 1; });
+  const dateNav = document.getElementById('date-nav');
+  dates.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'date-nav-btn';
+    btn.dataset.date = d;
+    btn.innerHTML = `${FRIENDLY_DATES[d] || d}<span class="date-nav-cnt">${dateCounts[d]}</span>`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.date-nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('dg-' + d)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    dateNav.appendChild(btn);
+  });
+
+  // Label list
+  const labelCounts = {};
+  allPosts.forEach(p => {
+    const lbl = p.post_label_name || 'Uncategorised';
+    labelCounts[lbl] = (labelCounts[lbl] || 0) + 1;
+  });
+  const labelList = document.getElementById('label-list');
+  Object.entries(labelCounts).sort((a,b) => b[1]-a[1]).forEach(([lbl, cnt]) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="label-name">${escHtml(lbl)}</span><span class="label-cnt ${cnt>5?'hi':''}">${cnt}</span>`;
+    li.addEventListener('click', () => {
+      const q = lbl.toLowerCase();
+      renderFeed(allPosts.filter(p => (p.post_label_name||'').toLowerCase() === q));
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    });
+    labelList.appendChild(li);
+  });
+}
+
+function renderFeed(posts) {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '';
+
+  if (!posts.length) {
+    feed.innerHTML = `<div class="state-msg"><h3>No posts found</h3><p>Try adjusting your search or filter.</p></div>`;
+    return;
+  }
+
+  // Group by blog_date, dates newest first
+  const byDate = {};
+  posts.forEach(p => {
+    if (!byDate[p.blog_date]) byDate[p.blog_date] = [];
+    byDate[p.blog_date].push(p);
+  });
+  const uniqueDates = [...new Set(posts.map(p => p.blog_date))].sort((a,b) => parseDate(b) - parseDate(a));
+
+  let delay = 0;
+  uniqueDates.forEach(date => {
+    const group = document.createElement('div');
+    group.className = 'date-group';
+    group.id = 'dg-' + date;
+
+    const banner = document.createElement('div');
+    banner.className = 'date-banner';
+    banner.innerHTML = `<span class="date-badge">${FRIENDLY_DATES[date] || date}</span><span class="date-count">${byDate[date].length} posts</span>`;
+    group.appendChild(banner);
+
+    const timeline = document.createElement('div');
+    timeline.className = 'timeline';
+
+    byDate[date].forEach(post => {
+      const cls = labelClass(post.post_label_name);
+      const { gmt, ist } = formatTimes(post.date);
+      const item = document.createElement('div');
+      item.className = `post-item ${cls}`;
+      item.style.animationDelay = `${delay * 30}ms`;
+      delay++;
+
+      const authorHtml = post.author_name
+        ? `<span class="post-author">By <strong>${escHtml(post.author_name)}</strong>${post.author_tagline ? ' · '+escHtml(post.author_tagline):''}</span>`
+        : `<span class="post-author" style="opacity:.4">Al Jazeera Staff</span>`;
+
+      const timeHtml = `
+        <div class="post-time">
+          <div class="tz-block">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${gmt || '–'}<span class="tz-tag">GMT</span>
+          </div>
+          <span class="tz-sep">|</span>
+          <div class="tz-block">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fa9000" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${ist || '–'}<span class="tz-tag ist">IST</span>
+          </div>
+        </div>`;
+
+      item.innerHTML = `
+        <div class="post-card ${cls}">
+          <div class="post-top">
+            ${post.post_label_name ? `<span class="post-label ${cls}">${escHtml(post.post_label_name)}</span>` : ''}
+            ${timeHtml}
+          </div>
+          <h2 class="post-title">${escHtml(post.title)}</h2>
+          <div class="post-content" id="content-${post.id}">${escHtml(post.content)}</div>
+          <div class="post-footer">
+            ${authorHtml}
+            <button class="read-more-btn" data-id="${post.id}">Read more</button>
+          </div>
+        </div>`;
+      timeline.appendChild(item);
+    });
+
+    group.appendChild(timeline);
+    feed.appendChild(group);
+  });
+
+  feed.querySelectorAll('.read-more-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const content = document.getElementById('content-' + btn.dataset.id);
+      const expanded = content.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Show less' : 'Read more';
+    });
+  });
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    applyFilters();
+  });
+});
+
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+function applyFilters() {
+  const query = document.getElementById('search-input').value.trim().toLowerCase();
+  let filtered = allPosts;
+  if (activeFilter !== 'all') {
+    filtered = filtered.filter(p => labelClass(p.post_label_name) === activeFilter);
+  }
+  if (query) {
+    filtered = filtered.filter(p =>
+      (p.title||'').toLowerCase().includes(query) ||
+      (p.content||'').toLowerCase().includes(query)
+    );
+  }
+  renderFeed(filtered);
+}
+
+loadAll();
+</script>
+</body>
+</html>
